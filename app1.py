@@ -27,8 +27,8 @@ if uploaded_file is not None:
           # Konfiguracja klucza Google AI
           genai.configure(api_key=api_key)
 
-          # Użycie darmowego i szybkiego modelu Gemini 1.5 Flash
-          model = genai.GenerativeModel("gemini-1.5-flash")
+          # Użycie najnowszego, stabilnego modelu Gemini
+          model = genai.GenerativeModel("gemini-2.5-flash")
 
           # Wygenerowanie odpowiedzi ze zdjęciem
           response = model.generate_content([
