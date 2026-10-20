@@ -3,10 +3,13 @@ import google.generativeai as genai
 import streamlit as st
 
 # Tytuł aplikacji
-st.title("Rozliczacz Paragonów (Google Gemini - Darmowe)")
+st.title("Rozliczacz Paragonów (Kornel & Klaudia)")
 
-# Pole na klucz API z Google AI Studio
-api_key = st.text_input("Wpisz swój klucz API z Google AI Studio", type="password")
+# Sprawdzenie, czy klucz jest w sekretach, jeśli nie - pytaj w polu tekstowym
+try:
+  api_key = st.secrets["GEMINI_API_KEY"]
+except:
+  api_key = st.text_input("Wpisz swój klucz API z Google AI Studio", type="password")
 
 # Pole do wgrania zdjęcia paragonu
 uploaded_file = st.file_uploader(
@@ -22,26 +25,37 @@ if uploaded_file is not None:
     if not api_key:
       st.error("Najpierw wpisz klucz API!")
     else:
-      with st.spinner("Analizuję paragon za pomocą Gemini..."):
+      with st.spinner("Analizuję paragon i dzielę zakupy..."):
         try:
           # Konfiguracja klucza Google AI
           genai.configure(api_key=api_key)
 
-          # Użycie aktualnego modelu gemini-3.8-flash wskazanego przez komunikat
+          # Użycie modelu Gemini
           model = genai.GenerativeModel("gemini-3.8-flash")
 
+          # Instrukcja z uwzględnieniem rzeczy niepewnych
+          prompt = (
+              "Przeanalizuj ten paragon i podziel pozycje na kategorie:\n1."
+              " **Kornel** (mniej zdrowe rzeczy, np. chipsy, cola, energetyki,"
+              " frytki, boczek, ketchup, majonez, sosy, ser cheddar, chleb"
+              " tostowy, lody, barszcz, bułki, słodycze itp.)\n2. **Klaudia**"
+              " (zdrowe rzeczy i osobiste, np. rzeczy do okularów, warzywa,"
+              " owoce, mrożonki, nabiał, jogurty, mięso, ryby, jajka itp.)\n3."
+              " **Wspólne** (chemia domowa, płyn do naczyń, płyn do prania, pasta"
+              " do zębów, papier toaletowy itp.)\n4. **Do ustalenia / Niejasne"
+              " pozycje** (tutaj wypisz wszystkie produkty z paragonu, co do"
+              " których masz wątpliwości, do jakiej kategorii je przypisać"
+              " albo których nazwy na paragonie są nieczytelne lub"
+              " zagadkowe).\n\nNa koniec podaj podsumowanie kosztów dla"
+              " Kornela i Klaudii (uwzględniając połowę kosztów wspólnych)."
+          )
+
           # Wygenerowanie odpowiedzi ze zdjęciem
-          response = model.generate_content([
-              image,
-              (
-                  "Przeanalizuj ten paragon, wypisz pozycje wraz z cenami i"
-                  " pomóż je rozliczyć między osobami."
-              ),
-          ])
+          response = model.generate_content([image, prompt])
 
           # Wyświetlenie wyniku
-          st.success("Gotowe!")
-          st.write(response.text)
+          st.success("Gotowe! Oto podział:")
+          st.markdown(response.text)
 
         except Exception as e:
           st.error(f"Wystąpił błąd: {e}")
