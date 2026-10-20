@@ -8,7 +8,13 @@ st.title("Rozliczacz Paragonów (Kornel & Klaudia)")
 # Automatyczne pobranie klucza z sekretów Streamlita
 api_key = st.secrets["GEMINI_API_KEY"]
 
-# Pole do wgrania wielu zdjęć paragonu naraz (np. długa część 1 i część 2)
+# Inicjalizacja historii konwersacji w pamięci podręcznej (st.session_state)
+if "chat" not in st.session_state:
+  st.session_state.chat = None
+if "result" not in st.session_state:
+  st.session_state.result = None
+
+# Pole do wgrania wielu zdjęć paragonu naraz
 uploaded_files = st.file_uploader(
     "Wgraj zdjęcie / zdjęcia paragonu",
     type=["png", "jpg", "jpeg"],
@@ -26,7 +32,6 @@ custom_rules = st.text_area(
 
 if uploaded_files:
   images = []
-  # Wyświetlenie wszystkich wgranych zdjęć
   for index, file in enumerate(uploaded_files):
     img = Image.open(file)
     images.append(img)
@@ -37,13 +42,12 @@ if uploaded_files:
   if st.button("Rozlicz paragon"):
     with st.spinner("Analizuję paragon i dzielę zakupy..."):
       try:
-        # Konfiguracja klucza Google AI
         genai.configure(api_key=api_key)
 
-        # Użycie modelu Gemini
+        # Uruchamiamy model w trybie czatu, żeby mógł pamiętać poprzednie odpowiedzi
         model = genai.GenerativeModel("gemini-3.8-flash")
+        st.session_state.chat = model.start_chat(history=[])
 
-        # Bazowa instrukcja z Twoimi nowymi wytycznymi
         prompt = (
             "Przeanalizuj przesłane zdjęcia paragonu (może to być jeden długi"
             " paragon podzielony na kilka zdjęć/zrzutów ekranu) i połącz je w"
@@ -61,7 +65,6 @@ if uploaded_files:
             " zagadkowe).\n\n"
         )
 
-        # Jeśli wpisano własne uwagi, doklejamy je do zapytania ze szczególnym priorytetem
         if custom_rules.strip():
           prompt += (
               "BARDZO WAŻNE - Uwzględnij poniższe dodatkowe zasady i wyjątki"
@@ -73,13 +76,41 @@ if uploaded_files:
             " (uwzględniając połowę kosztów wspólnych)."
         )
 
-        # Przekazujemy wszystkie zdjęcia i prompt do Gemini
+        # Wyślij zdjęcia i prompt w konwersacji
         content_to_send = images + [prompt]
-        response = model.generate_content(content_to_send)
-
-        # Wyświetlenie wyniku
-        st.success("Gotowe! Oto podział:")
-        st.markdown(response.text)
+        response = st.session_state.chat.send_message(content_to_send)
+        st.session_state.result = response.text
 
       except Exception as e:
         st.error(f"Wystąpił błąd: {e}")
+
+# Wyświetlanie wyniku i pole do poprawek
+if st.session_state.result:
+  st.success("Gotowe! Oto podział:")
+  st.markdown(st.session_state.result)
+
+  st.divider()
+  st.subheader("✏️ Coś się nie zgadza? Popraw rozliczenie")
+
+  correction = st.text_input(
+      "Wpisz uwagę do powyższego rozliczenia:",
+      placeholder=(
+          "Np. Przenieś ser w plastrach do Klaudii, a kawa miała być pół na"
+          " pół."
+      ),
+  )
+
+  if st.button("Zastosuj poprawkę"):
+    if correction.strip():
+      with st.spinner("Aktualizuję podział..."):
+        try:
+          # Przesyłamy samą uwagę do otwartej konwersacji
+          response = st.session_state.chat.send_message(
+              f"Wprowadź następującą poprawkę do poprzedniego rozliczenia:"
+              f" {correction}. Przedstaw od nowa pełny, zaktualizowany podział"
+              " i podsumowanie kosztów."
+          )
+          st.session_state.result = response.text
+          st.rerun()  # Odświeżenie widoku z nowym wynikiem
+        except Exception as e:
+          st.error(f"Wystąpił błąd podczas poprawiania: {e}")
