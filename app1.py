@@ -1,6 +1,7 @@
+import base64
 import os
-import streamlit as st
 from openai import OpenAI
+import streamlit as st
 
 # Tytuł aplikacji
 st.title("Rozliczacz Paragonów (Wersja Darmowa - OpenRouter)")
@@ -30,13 +31,11 @@ if uploaded_file is not None:
 
           # Odczytanie bytes pliku graficznego
           image_bytes = uploaded_file.getvalue()
-          import base64
-
           base64_image = base64.b64encode(image_bytes).decode("utf-8")
 
-          # Wywołanie darmowego modelu wizyjnego przez OpenRouter
+          # Wywołanie zaktualizowanego, darmowego modelu wizyjnego przez OpenRouter
           response = client.chat.completions.create(
-              model="google/gemini-2.0-flash-lite-preview:free",  # Darmowy model wizyjny
+              model="meta-llama/llama-3.2-11b-vision-instruct:free",
               messages=[
                   {
                       "role": "user",
@@ -64,4 +63,4 @@ if uploaded_file is not None:
           st.write(response.choices[0].message.content)
 
         except Exception as e:
-          st.error(st.error(f"Wystąpił błąd: {e}"))
+          st.error(f"Wystąpił błąd: {e}")
