@@ -1,43 +1,67 @@
+import os
 import streamlit as st
 from openai import OpenAI
-import base64
 
-st.title("🧾 Rozliczacz Paragonów")
+# Tytuł aplikacji
+st.title("Rozliczacz Paragonów (Wersja Darmowa - OpenRouter)")
 
-api_key = st.text_input("Klucz OpenAI API", type="password")
-uploaded_file = st.file_uploader("Wgraj zdjęcie paragonu", type=["jpg", "jpeg", "png"])
+# Pole na klucz API do OpenRouter
+api_key = st.text_input("Wpisz swój klucz API OpenRouter", type="password")
 
-if uploaded_file and api_key:
-    st.image(uploaded_file, caption="Wgrany paragon", use_container_width=True)
-    
-    if st.button("Rozlicz paragon"):
-        with st.spinner("Analizowanie..."):
-            client = OpenAI(api_key=api_key)
-            bytes_data = uploaded_file.getvalue()
-            base64_image = base64.b64encode(bytes_data).decode('utf-8')
-            
-            prompt_instrukcja = """
-            Jesteś asystentem do rozliczania paragonów między parą.
-            Zasady:
-            - Produkty Twoje: energetyki, białko, słodycze.
-            - Produkty Jej: kosmetyki, produkty owsiane.
-            - Reszta: Wspólne (dzielone 50/50).
-            Przeanalizuj paragon, przypisz produkty, wylicz ile dziewczyna musi Ci oddać.
-            """
-            
-            response = client.chat.completions.create(
-                model="gpt-4o",
-                messages=[
-                    {"role": "system", "content": prompt_instrukcja},
-                    {
-                        "role": "user",
-                        "content": [
-                            {"type": "text", "text": "Rozlicz ten paragon:"},
-                            {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"}}
-                        ]
-                    }
-                ]
-            )
-            
-            st.markdown("### Wynik rozliczenia:")
-            st.write(response.choices[0].message.content)
+# Pole do wgrania zdjęcia paragonu
+uploaded_file = st.file_uploader(
+    "Wgraj zdjęcie paragonu", type=["png", "jpg", "jpeg"]
+)
+
+if uploaded_file is not None:
+  # Wyświetlenie wgranego zdjęcia
+  st.image(uploaded_file, caption="Wgrany paragon", use_column_width=True)
+
+  if st.button("Rozlicz paragon"):
+    if not api_key:
+      st.error("Najpierw wpisz klucz API OpenRouter!")
+    else:
+      with st.spinner("Analizuję paragon za pomocą darmowego AI..."):
+        try:
+          # Inicjalizacja klienta OpenAI ze skierowaniem na OpenRouter
+          client = OpenAI(
+              base_url="https://openrouter.ai/api/v1", api_key=api_key
+          )
+
+          # Odczytanie bytes pliku graficznego
+          image_bytes = uploaded_file.getvalue()
+          import base64
+
+          base64_image = base64.b64encode(image_bytes).decode("utf-8")
+
+          # Wywołanie darmowego modelu wizyjnego przez OpenRouter
+          response = client.chat.completions.create(
+              model="google/gemini-2.0-flash-lite-preview:free",  # Darmowy model wizyjny
+              messages=[
+                  {
+                      "role": "user",
+                      "content": [
+                          {
+                              "type": "text",
+                              "text": (
+                                  "Przeanalizuj ten paragon, wypisz pozycje"
+                                  " wraz z cenami i pomóż je rozliczyć."
+                              ),
+                          },
+                          {
+                              "type": "image_url",
+                              "image_url": {
+                                  "url": f"data:image/jpeg;base64,{base64_image}"
+                              },
+                          },
+                      ],
+                  }
+              ],
+          )
+
+          # Wyświetlenie wyniku
+          st.success("Gotowe!")
+          st.write(response.choices[0].message.content)
+
+        except Exception as e:
+          st.error(st.error(f"Wystąpił błąd: {e}"))
