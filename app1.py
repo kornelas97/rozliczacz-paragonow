@@ -8,9 +8,11 @@ st.title("Rozliczacz Paragonów (Kornel & Klaudia)")
 # Automatyczne pobranie klucza z sekretów Streamlita
 api_key = st.secrets["GEMINI_API_KEY"]
 
-# Pole do wgrania zdjęcia paragonu
-uploaded_file = st.file_uploader(
-    "Wgraj zdjęcie paragonu", type=["png", "jpg", "jpeg"]
+# Pole do wgrania wielu zdjęć paragonu naraz (np. długa część 1 i część 2)
+uploaded_files = st.file_uploader(
+    "Wgraj zdjęcie / zdjęcia paragonu",
+    type=["png", "jpg", "jpeg"],
+    accept_multiple_files=True,
 )
 
 # Pola na własne, bieżące instrukcje i wyjątki
@@ -22,10 +24,15 @@ custom_rules = st.text_area(
     ),
 )
 
-if uploaded_file is not None:
-  # Załadowanie i wyświetlenie wgranego zdjęcia
-  image = Image.open(uploaded_file)
-  st.image(image, caption="Wgrany paragon", use_column_width=True)
+if uploaded_files:
+  images = []
+  # Wyświetlenie wszystkich wgranych zdjęć
+  for index, file in enumerate(uploaded_files):
+    img = Image.open(file)
+    images.append(img)
+    st.image(
+        img, caption=f"Część paragonu #{index + 1}", use_column_width=True
+    )
 
   if st.button("Rozlicz paragon"):
     with st.spinner("Analizuję paragon i dzielę zakupy..."):
@@ -36,18 +43,20 @@ if uploaded_file is not None:
         # Użycie modelu Gemini
         model = genai.GenerativeModel("gemini-3.8-flash")
 
-        # Bazowa instrukcja z podziałem na kategorie
+        # Bazowa instrukcja z Twoimi nowymi wytycznymi
         prompt = (
-            "Przeanalizuj ten paragon i podziel pozycje na kategorie:\n1."
-            " **Kornel** (mniej zdrowe rzeczy, np. chipsy, cola, energetyki,"
-            " frytki, boczek, ketchup, majonez, sosy, ser cheddar, chleb"
-            " tostowy, lody, barszcz, bułki, słodycze , żelki , gumy maoam , ser w plastrach ,  itp.)\n2. **Klaudia**"
-            " (zdrowe rzeczy i osobiste, np. rzeczy do okularów, warzywa,"
-            " owoce, mrożonki, nabiał, jogurty, mięso, ryby, jajka , kawa  itp.)\n3."
-            " **Wspólne** (chemia domowa, płyn do naczyń, płyn do prania, pasta"
-            " do zębów, papier toaletowy itp.)\n4. **Do ustalenia / Niejasne"
-            " pozycje** (tutaj wypisz wszystkie produkty z paragonu, co do"
-            " których masz wątpliwości, do jakiej kategorii je przypisać"
+            "Przeanalizuj przesłane zdjęcia paragonu (może to być jeden długi"
+            " paragon podzielony na kilka zdjęć/zrzutów ekranu) i połącz je w"
+            " jedną całość.\n\nPodziel pozycje na kategorie:\n1. **Kornel**"
+            " (mniej zdrowe rzeczy, np. chipsy, cola, energetyki, frytki,"
+            " boczek, ketchup, majonez, sosy, ser cheddar, chleb tostowy, lody,"
+            " barszcz, bułki, słodycze, żelki, gumy maoam, ser w plastrach itp.)\n2."
+            " **Klaudia** (zdrowe rzeczy i osobiste, np. rzeczy do okularów,"
+            " warzywa, owoce, mrożonki, nabiał, jogurty, mięso, ryby, jajka, kawa"
+            " itp.)\n3. **Wspólne** (chemia domowa, płyn do naczyń, płyn do"
+            " prania, pasta do zębów, papier toaletowy itp.)\n4. **Do ustalenia /"
+            " Niejasne pozycje** (tutaj wypisz wszystkie produkty z paragonu, co"
+            " do których masz wątpliwości, do jakiej kategorii je przypisać"
             " albo których nazwy na paragonie są nieczytelne lub"
             " zagadkowe).\n\n"
         )
@@ -64,8 +73,9 @@ if uploaded_file is not None:
             " (uwzględniając połowę kosztów wspólnych)."
         )
 
-        # Wygenerowanie odpowiedzi ze zdjęciem
-        response = model.generate_content([image, prompt])
+        # Przekazujemy wszystkie zdjęcia i prompt do Gemini
+        content_to_send = images + [prompt]
+        response = model.generate_content(content_to_send)
 
         # Wyświetlenie wyniku
         st.success("Gotowe! Oto podział:")
