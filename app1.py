@@ -34,7 +34,7 @@ if uploaded_file is not None:
             " frytki, boczek, ketchup, majonez, sosy, ser cheddar, chleb"
             " tostowy, lody, barszcz, bułki, słodycze itp.)\n2. **Klaudia**"
             " (zdrowe rzeczy i osobiste, np. rzeczy do okularów, warzywa,"
-            " owoce, mrożonki, nabiał, jogurty, mięso, ryby, jajka itp.)\n3."
+            " owoce, mrożonki, nabiał, jogurty, mięso, ryby, jajka , kawa , herbaty , nici dentystyczne , mleko itp.)\n3."
             " **Wspólne** (chemia domowa, płyn do naczyń, płyn do prania, pasta"
             " do zębów, papier toaletowy itp.)\n4. **Do ustalenia / Niejasne"
             " pozycje** (tutaj wypisz wszystkie produkty z paragonu, co do"
