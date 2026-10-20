@@ -1,13 +1,12 @@
-import base64
-import os
-from openai import OpenAI
+from PIL import Image
+import google.generativeai as genai
 import streamlit as st
 
 # Tytuł aplikacji
-st.title("Rozliczacz Paragonów (Wersja Darmowa - OpenRouter)")
+st.title("Rozliczacz Paragonów (Google Gemini - Darmowe)")
 
-# Pole na klucz API do OpenRouter
-api_key = st.text_input("Wpisz swój klucz API OpenRouter", type="password")
+# Pole na klucz API z Google AI Studio
+api_key = st.text_input("Wpisz swój klucz API z Google AI Studio", type="password")
 
 # Pole do wgrania zdjęcia paragonu
 uploaded_file = st.file_uploader(
@@ -16,51 +15,33 @@ uploaded_file = st.file_uploader(
 
 if uploaded_file is not None:
   # Wyświetlenie wgranego zdjęcia
-  st.image(uploaded_file, caption="Wgrany paragon", use_column_width=True)
+  image = Image.open(uploaded_file)
+  st.image(image, caption="Wgrany paragon", use_column_width=True)
 
   if st.button("Rozlicz paragon"):
     if not api_key:
-      st.error("Najpierw wpisz klucz API OpenRouter!")
+      st.error("Najpierw wpisz klucz API!")
     else:
-      with st.spinner("Analizuję paragon za pomocą darmowego AI..."):
+      with st.spinner("Analizuję paragon za pomocą Gemini..."):
         try:
-          # Inicjalizacja klienta OpenAI ze skierowaniem na OpenRouter
-          client = OpenAI(
-              base_url="https://openrouter.ai/api/v1", api_key=api_key
-          )
+          # Konfiguracja klucza Google AI
+          genai.configure(api_key=api_key)
 
-          # Odczytanie bytes pliku graficznego
-          image_bytes = uploaded_file.getvalue()
-          base64_image = base64.b64encode(image_bytes).decode("utf-8")
+          # Użycie darmowego i szybkiego modelu Gemini 1.5 Flash
+          model = genai.GenerativeModel("gemini-1.5-flash")
 
-          # Wywołanie zaktualizowanego, darmowego modelu wizyjnego przez OpenRouter
-          response = client.chat.completions.create(
-              model="meta-llama/llama-3.2-11b-vision-instruct:free",
-              messages=[
-                  {
-                      "role": "user",
-                      "content": [
-                          {
-                              "type": "text",
-                              "text": (
-                                  "Przeanalizuj ten paragon, wypisz pozycje"
-                                  " wraz z cenami i pomóż je rozliczyć."
-                              ),
-                          },
-                          {
-                              "type": "image_url",
-                              "image_url": {
-                                  "url": f"data:image/jpeg;base64,{base64_image}"
-                              },
-                          },
-                      ],
-                  }
-              ],
-          )
+          # Wygenerowanie odpowiedzi ze zdjęciem
+          response = model.generate_content([
+              image,
+              (
+                  "Przeanalizuj ten paragon, wypisz pozycje wraz z cenami i"
+                  " pomóż je rozliczyć między osobami."
+              ),
+          ])
 
           # Wyświetlenie wyniku
           st.success("Gotowe!")
-          st.write(response.choices[0].message.content)
+          st.write(response.text)
 
         except Exception as e:
           st.error(f"Wystąpił błąd: {e}")
