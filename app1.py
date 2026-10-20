@@ -5,12 +5,21 @@ import streamlit as st
 # Tytuł aplikacji
 st.title("Rozliczacz Paragonów (Kornel & Klaudia)")
 
-# Automatyczne pobranie klucza z sekretów chmury Streamlit Cloud
+# Automatyczne pobranie klucza z sekretów Streamlita
 api_key = st.secrets["GEMINI_API_KEY"]
 
 # Pole do wgrania zdjęcia paragonu
 uploaded_file = st.file_uploader(
     "Wgraj zdjęcie paragonu", type=["png", "jpg", "jpeg"]
+)
+
+# Pola na własne, bieżące instrukcje i wyjątki
+custom_rules = st.text_area(
+    "Dodatkowe zasady / wyjątki do tego paragonu (opcjonalnie)",
+    placeholder=(
+        "Np. Woda mineralna jest zawsze dla Klaudii. Sos czosnkowy jest"
+        " wspólny."
+    ),
 )
 
 if uploaded_file is not None:
@@ -27,21 +36,32 @@ if uploaded_file is not None:
         # Użycie modelu Gemini
         model = genai.GenerativeModel("gemini-3.8-flash")
 
-        # Instrukcja z podziałem na Wasze kategorie
+        # Bazowa instrukcja z podziałem na kategorie
         prompt = (
             "Przeanalizuj ten paragon i podziel pozycje na kategorie:\n1."
             " **Kornel** (mniej zdrowe rzeczy, np. chipsy, cola, energetyki,"
             " frytki, boczek, ketchup, majonez, sosy, ser cheddar, chleb"
             " tostowy, lody, barszcz, bułki, słodycze itp.)\n2. **Klaudia**"
             " (zdrowe rzeczy i osobiste, np. rzeczy do okularów, warzywa,"
-            " owoce, mrożonki, nabiał, jogurty, mięso, ryby, jajka , kawa , herbaty , nici dentystyczne , mleko itp.)\n3."
+            " owoce, mrożonki, nabiał, jogurty, mięso, ryby, jajka itp.)\n3."
             " **Wspólne** (chemia domowa, płyn do naczyń, płyn do prania, pasta"
             " do zębów, papier toaletowy itp.)\n4. **Do ustalenia / Niejasne"
             " pozycje** (tutaj wypisz wszystkie produkty z paragonu, co do"
             " których masz wątpliwości, do jakiej kategorii je przypisać"
             " albo których nazwy na paragonie są nieczytelne lub"
-            " zagadkowe).\n\nNa koniec podaj podsumowanie kosztów dla"
-            " Kornela i Klaudii (uwzględniając połowę kosztów wspólnych)."
+            " zagadkowe).\n\n"
+        )
+
+        # Jeśli wpisano własne uwagi, doklejamy je do zapytania ze szczególnym priorytetem
+        if custom_rules.strip():
+          prompt += (
+              "BARDZO WAŻNE - Uwzględnij poniższe dodatkowe zasady i wyjątki"
+              f" podane przez użytkownika:\n{custom_rules}\n\n"
+          )
+
+        prompt += (
+            "Na koniec podaj podsumowanie kosztów dla Kornela i Klaudii"
+            " (uwzględniając połowę kosztów wspólnych)."
         )
 
         # Wygenerowanie odpowiedzi ze zdjęciem
