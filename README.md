@@ -1,0 +1,1 @@
+# rozliczacz-paragonow
