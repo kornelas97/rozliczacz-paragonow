@@ -1,10 +1,11 @@
+from PIL import Image
 import google.generativeai as genai
 import streamlit as st
 
 # Tytuł aplikacji
 st.title("Rozliczacz Paragonów (Kornel & Klaudia)")
 
-# Pole na klucz API (bezpiecznie ukryte pod gwiazdkami)
+# Pole na klucz API
 api_key = st.text_input(
     "Wpisz swój klucz API z Google AI Studio", type="password"
 )
@@ -15,13 +16,13 @@ uploaded_file = st.file_uploader(
 )
 
 if uploaded_file is not None:
-  # Wyświetlenie wgranego zdjęcia
+  # Załadowanie i wyświetlenie wgranego zdjęcia
   image = Image.open(uploaded_file)
   st.image(image, caption="Wgrany paragon", use_column_width=True)
 
   if st.button("Rozlicz paragon"):
     if not api_key:
-      st.error("Najpierw wpisz klucz API powyżej!")
+      st.error("Najpierw wpisz klucz API!")
     else:
       with st.spinner("Analizuję paragon i dzielę zakupy..."):
         try:
@@ -31,7 +32,7 @@ if uploaded_file is not None:
           # Użycie modelu Gemini
           model = genai.GenerativeModel("gemini-3.8-flash")
 
-          # Instrukcja z uwzględnieniem Waszych zasad i rzeczy niepewnych
+          # Instrukcja z podziałem na Wasze kategorie
           prompt = (
               "Przeanalizuj ten paragon i podziel pozycje na kategorie:\n1."
               " **Kornel** (mniej zdrowe rzeczy, np. chipsy, cola, energetyki,"
